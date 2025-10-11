@@ -78,3 +78,39 @@ Deno.serve(async (req) => {
   return handleRequest(store, req);
 });
 ```
+
+## Overriding Services for Testing Example
+
+```ts
+import { defineStore } from "@david/service-store";
+
+// in the app, define the store that is used when the app runs. 
+const appStore = defineStore()
+  .add("db", async (store) => {    
+    const pool = store.get("dbPool");
+    return await pool.getItem();
+  })
+  .add("userService", async (store) => {
+    return new UserService(
+      await store.get("db"),
+      store.get("imageCache"),
+    );
+  });
+
+// in tests, reference the app store and override dependencies you want 
+// replaced with mocks, stubs, or fakes.
+Deno.test("user service test", async () => {
+  const store = appStore
+    // override the db service with a mock
+    .override("db", () => {
+      return new MockDatabase();
+    })
+    .finalize();
+
+  // get instance of user service without overriding it. It will use the mock db. 
+  const userService = store.get("userService");
+  const user = await userService.getUser(1);
+  assertEquals(user.id, 1);
+  assertEquals(user.name, "Test User");
+});
+```

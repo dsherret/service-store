@@ -10,6 +10,9 @@ export class Store<TServices extends object>
   readonly #factories: {
     [K in keyof TServices]: (store: Store<TServices>) => TServices[K];
   };
+  readonly #overrides: {
+    [K in keyof TServices]?: (store: Store<TServices>) => TServices[K];
+  };
   readonly #parent?: Store<object>;
 
   /** @ignore */
@@ -18,9 +21,13 @@ export class Store<TServices extends object>
       [K in keyof TServices]: (store: Store<TServices>) => TServices[K];
     },
     parent: Store<object> | undefined,
+    overrides: {
+      [K in keyof TServices]?: (store: Store<TServices>) => TServices[K];
+    },
   ) {
     this.#factories = factories;
     this.#parent = parent;
+    this.#overrides = overrides;
   }
 
   /**
@@ -60,7 +67,8 @@ export class Store<TServices extends object>
 
   /** Gets if the store has a service with the provided name. */
   has<TName extends keyof TServices>(name: TName): boolean {
-    return name in this.#factories ||
+    return name in this.#overrides || 
+      name in this.#factories ||
       (this.#parent?.has(name as any as never) ?? false);
   }
 
@@ -72,6 +80,14 @@ export class Store<TServices extends object>
   get<TName extends keyof TServices>(
     name: TName,
   ): TServices[TName] {
+    // Check for override first - highest priority    
+    const overrideFactory = this.#overrides[name];
+    if (overrideFactory != null) {
+      const value = overrideFactory(this);
+      return value as any;
+    }
+
+    // Check memorized values next - but only if there's no override
     if (name in this.#memoizedValues) {
       const entry = this.#memoizedValues[name]!;
       if (entry.promisify) {
@@ -126,7 +142,7 @@ export class Store<TServices extends object>
    * specifically for that request.
    */
   createChild(): StoreDefinition<TServices> {
-    return new StoreDefinition({} as any, this as any);
+    return new StoreDefinition({} as any, this as any, {});
   }
 }
 
@@ -134,6 +150,9 @@ export class Store<TServices extends object>
 export class StoreDefinition<TServices extends object> {
   readonly #factories: {
     [K in keyof TServices]: (store: Store<TServices>) => TServices[K];
+  };
+  readonly #overrides: {
+    [K in keyof TServices]?: (store: Store<TServices>) => TServices[K];
   };
   readonly #parentStore: Store<object> | undefined;
 
@@ -143,12 +162,16 @@ export class StoreDefinition<TServices extends object> {
       [K in keyof TServices]: (store: Store<TServices>) => TServices[K];
     },
     parentStore: Store<object> | undefined,
+    overrides: {
+      [K in keyof TServices]?: (store: Store<TServices>) => TServices[K];
+    },
   ) {
-    if (arguments.length !== 2) {
+    if (arguments.length !== 3) {
       throw new Error("Use the `defineStore` export instead.");
     }
     this.#factories = factories;
     this.#parentStore = parentStore;
+    this.#overrides = overrides;
   }
 
   /** Adds a service factory to the store definition at the provided key. */
@@ -162,7 +185,7 @@ export class StoreDefinition<TServices extends object> {
     return new StoreDefinition({
       ...this.#factories,
       [name]: value,
-    } as any, this.#parentStore) as any;
+    } as any, this.#parentStore, this.#overrides) as any;
   }
 
   /**
@@ -178,9 +201,28 @@ export class StoreDefinition<TServices extends object> {
     return this.add(name, value);
   }
 
+  /**
+   * Overrides an existing service factory in the store definition.
+   * This is useful for testing where you want to replace a service
+   * with a mock or test implementation.
+   */
+  override<TName extends keyof TServices>(
+    name: TName,
+    value: (services: Store<TServices>) => TServices[TName],
+  ): StoreDefinition<TServices> {
+    return new StoreDefinition(
+      this.#factories,
+      this.#parentStore,
+      {
+        ...this.#overrides,
+        [name]: value,
+      }
+    ) as any;
+  }
+
   /** Create the store. */
   finalize(): Store<TServices> {
-    return new Store(this.#factories, this.#parentStore);
+    return new Store(this.#factories, this.#parentStore, this.#overrides);
   }
 }
 
@@ -197,5 +239,5 @@ export class StoreDefinition<TServices extends object> {
  * ```
  */
 export function defineStore(): StoreDefinition<object> {
-  return new StoreDefinition({}, undefined);
+  return new StoreDefinition({}, undefined, {});
 }
