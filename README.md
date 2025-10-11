@@ -84,9 +84,9 @@ Deno.serve(async (req) => {
 ```ts
 import { defineStore } from "@david/service-store";
 
-// in the app, define the store that is used when the app runs. 
+// in the app, define the store that is used when the app runs.
 const appStore = defineStore()
-  .add("db", async (store) => {    
+  .add("db", async (store) => {
     const pool = store.get("dbPool");
     return await pool.getItem();
   })
@@ -97,7 +97,7 @@ const appStore = defineStore()
     );
   });
 
-// in tests, reference the app store and override dependencies you want 
+// in tests, reference the app store and override dependencies you want
 // replaced with mocks, stubs, or fakes.
 Deno.test("user service test", async () => {
   const store = appStore
@@ -107,7 +107,7 @@ Deno.test("user service test", async () => {
     })
     .finalize();
 
-  // get instance of user service without overriding it. It will use the mock db. 
+  // get instance of user service without overriding it. It will use the mock db.
   const userService = store.get("userService");
   const user = await userService.getUser(1);
   assertEquals(user.id, 1);

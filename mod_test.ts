@@ -266,7 +266,7 @@ Deno.test("store can be typed easily", () => {
 Deno.test("override service - given original store and a store copy, expect original to be unmodified", () => {
   let originalCreatedTimes = 0;
   let overrideCreatedTimes = 0;
-  
+
   const originalStoreDef = defineStore()
     .add("A", () => {
       originalCreatedTimes++;
@@ -333,7 +333,7 @@ Deno.test("override service in child store", () => {
 Deno.test("override with async service", async () => {
   const storeDef = defineStore()
     .add("async", async () => {
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       return { value: "original" };
     });
 
@@ -360,7 +360,7 @@ Deno.test("override should take precedence over memorized values", async () => {
     })
     .add("asyncService", async () => {
       asyncOriginalCallCount++;
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       return { value: "original", callCount: asyncOriginalCallCount };
     });
 
@@ -398,7 +398,7 @@ Deno.test("override should take precedence over memorized values", async () => {
     })
     .override("asyncService", async () => {
       asyncOverrideCallCount++;
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       return { value: "overridden", callCount: asyncOverrideCallCount };
     });
 
@@ -464,4 +464,3 @@ Deno.test("override should work with child stores and memorized values", () => {
   assertEquals(parentResultAgain.value, "parent");
   assertEquals(parentCallCount, 1); // Still no additional calls
 });
-

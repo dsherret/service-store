@@ -67,7 +67,7 @@ export class Store<TServices extends object>
 
   /** Gets if the store has a service with the provided name. */
   has<TName extends keyof TServices>(name: TName): boolean {
-    return name in this.#overrides || 
+    return name in this.#overrides ||
       name in this.#factories ||
       (this.#parent?.has(name as any as never) ?? false);
   }
@@ -80,7 +80,7 @@ export class Store<TServices extends object>
   get<TName extends keyof TServices>(
     name: TName,
   ): TServices[TName] {
-    // Check for override first - highest priority    
+    // Check for override first - highest priority
     const overrideFactory = this.#overrides[name];
     if (overrideFactory != null) {
       const value = overrideFactory(this);
@@ -182,10 +182,14 @@ export class StoreDefinition<TServices extends object> {
     if (name in this.#factories || this.#parentStore?.has(name as never)) {
       throw new Error(`Service already defined: ${name}`);
     }
-    return new StoreDefinition({
-      ...this.#factories,
-      [name]: value,
-    } as any, this.#parentStore, this.#overrides) as any;
+    return new StoreDefinition(
+      {
+        ...this.#factories,
+        [name]: value,
+      } as any,
+      this.#parentStore,
+      this.#overrides,
+    ) as any;
   }
 
   /**
@@ -216,7 +220,7 @@ export class StoreDefinition<TServices extends object> {
       {
         ...this.#overrides,
         [name]: value,
-      }
+      },
     ) as any;
   }
 
