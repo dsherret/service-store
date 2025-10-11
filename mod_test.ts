@@ -338,7 +338,7 @@ Deno.test("override with async service", async () => {
     });
 
   const overriddenStoreDef = storeDef
-    .override("async", async () => {
+    .override("async", () => {
       return Promise.resolve({ value: "mocked" });
     });
 
