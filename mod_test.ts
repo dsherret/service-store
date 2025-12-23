@@ -1,5 +1,11 @@
 import { assert, assertEquals, assertRejects, assertThrows } from "@std/assert";
-import { defineStore, type Store, StoreDefinition } from "./mod.ts";
+import {
+  defineStore,
+  type GetServiceType,
+  type GetStoreKeys,
+  type Store,
+  StoreDefinition,
+} from "./mod.ts";
 
 Deno.test("StoreBuilder ctor", () => {
   assertThrows(
@@ -463,4 +469,93 @@ Deno.test("override should work with child stores and memorized values", () => {
   const parentResultAgain = parentStore.get("parentService");
   assertEquals(parentResultAgain.value, "parent");
   assertEquals(parentCallCount, 1); // Still no additional calls
+});
+
+Deno.test("GetStoreKeys type extracts service keys", () => {
+  const storeDef = defineStore()
+    .add("db", () => ({ connect: () => {} }))
+    .add("userService", () => ({ getUser: () => {} }))
+    .add("authService", () => ({ login: () => {} }));
+
+  const store = storeDef.finalize();
+
+  // Type tests - these should compile without errors
+  const keyFromStore: GetStoreKeys<typeof store> = "db";
+  const keyFromStoreDef: GetStoreKeys<typeof storeDef> = "userService";
+
+  // Runtime verification that the keys actually exist
+  assert(store.has(keyFromStore));
+  assert(store.has(keyFromStoreDef));
+  assert(store.has("authService"));
+
+  // Verify we can use the extracted keys to get services
+  const db = store.get(keyFromStore as "db");
+  const userService = store.get(keyFromStoreDef as "userService");
+  assertEquals(typeof db.connect, "function");
+  assertEquals(typeof userService.getUser, "function");
+
+  // Type assertion to verify the union type is correct
+  type Keys = GetStoreKeys<typeof store>;
+  const validKeys: Keys[] = ["db", "userService", "authService"];
+
+  // Verify all keys are valid
+  for (const key of validKeys) {
+    assert(store.has(key));
+  }
+});
+
+Deno.test("GetServiceType extracts service types", () => {
+  interface DbService {
+    connect: () => void;
+    query: (sql: string) => Promise<unknown>;
+  }
+
+  interface UserService {
+    getUser: (id: number) => Promise<{ name: string }>;
+    deleteUser: (id: number) => Promise<void>;
+  }
+
+  const storeDef = defineStore()
+    .add("db", (): DbService => ({
+      connect: () => {},
+      query: () => Promise.resolve({}),
+    }))
+    .add("userService", (): UserService => ({
+      getUser: () => Promise.resolve({ name: "test" }),
+      deleteUser: () => Promise.resolve(),
+    }))
+    .add("counter", () => ({ value: 42 }));
+
+  const store = storeDef.finalize();
+
+  // Type tests - verify the extracted types match the actual service types
+  type DbType = GetServiceType<typeof store, "db">;
+  type UserServiceType = GetServiceType<typeof storeDef, "userService">;
+  type CounterType = GetServiceType<typeof store, "counter">;
+
+  // Runtime verification that the services work as expected
+  const db = store.get("db") satisfies DbType;
+  const userService = store.get("userService") satisfies UserServiceType;
+  const counter = store.get("counter") satisfies CounterType;
+
+  assertEquals(typeof db.connect, "function");
+  assertEquals(typeof db.query, "function");
+  assertEquals(typeof userService.getUser, "function");
+  assertEquals(typeof userService.deleteUser, "function");
+  assertEquals(counter.value, 42);
+
+  // Verify the types are correctly inferred
+  db.connect();
+  assertEquals(typeof db.query("SELECT * FROM users"), "object"); // Promise
+
+  // Type assertion to ensure the types match expectations
+  const _dbTypeCheck: DbType extends DbService ? true : false = true;
+  const _userServiceTypeCheck: UserServiceType extends UserService ? true
+    : false = true;
+  const _counterTypeCheck: CounterType extends { value: number } ? true
+    : false = true;
+
+  assert(_dbTypeCheck);
+  assert(_userServiceTypeCheck);
+  assert(_counterTypeCheck);
 });
