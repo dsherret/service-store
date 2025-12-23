@@ -230,6 +230,18 @@ export class StoreDefinition<TServices extends object> {
   }
 }
 
+/** Extracts all service keys from a Store or StoreDefinition as a union type. */
+export type GetStoreKeys<T> = T extends Store<infer TServices> ? keyof TServices
+  : T extends StoreDefinition<infer TServices> ? keyof TServices
+  : never;
+
+/** Extracts the service type for a given key from a Store or StoreDefinition. */
+export type GetServiceType<T, K extends GetStoreKeys<T>> = T extends
+  Store<infer TServices> ? K extends keyof TServices ? TServices[K] : never
+  : T extends StoreDefinition<infer TServices>
+    ? K extends keyof TServices ? TServices[K] : never
+  : never;
+
 /**
  * Start for defining a store definition and eventually
  * creating a store.
