@@ -1,6 +1,7 @@
-# `@david/service-store`
+# service-store
 
 [![JSR](https://jsr.io/badges/@david/service-store)](https://jsr.io/@david/service-store)
+[![npm](https://img.shields.io/npm/v/@dsherret/service-store)](https://www.npmjs.com/package/@dsherret/service-store)
 
 Lightweight dependency injection.
 
