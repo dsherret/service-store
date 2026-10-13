@@ -16,7 +16,7 @@ Services are created lazily and memoized.
 ## Example
 
 ```ts
-import { defineStore } from "@david/service-store";
+import { defineStore } from "...";
 
 const store = defineStore()
   .add("db", () => {
@@ -40,7 +40,7 @@ const userService = store.get("userService");
 ## Child Stores Example
 
 ```ts
-import { defineStore } from "@david/service-store";
+import { defineStore } from "...";
 
 // services here will be shared amongst the requests
 const singletonStore = defineStore()
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 ## Overriding Services for Testing Example
 
 ```ts
-import { defineStore } from "@david/service-store";
+import { defineStore } from "...";
 
 // in the app, define the store that is used when the app runs.
 const appStore = defineStore()

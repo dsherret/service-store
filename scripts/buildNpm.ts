@@ -39,15 +39,8 @@ await build({
       url: "https://github.com/dsherret/service-store/issues",
     },
   },
-  async postBuild() {
+  postBuild() {
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
-    const readme = await Deno.readTextFile("README.md");
-    await Deno.writeTextFile(
-      "npm/README.md",
-      readme.replaceAll(
-        '"@david/service-store"',
-        '"@dsherret/service-store"',
-      ),
-    );
+    Deno.copyFileSync("README.md", "npm/README.md");
   },
 });
